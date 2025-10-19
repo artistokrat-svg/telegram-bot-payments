@@ -3,6 +3,7 @@ import sqlite3
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
+from aiogram.filters import Command
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
@@ -33,9 +34,9 @@ async def all_payments(message: Message):
     text += f"\n💰 *Итого за последние операции:* {total_sum} ₽"
     await message.reply(text, parse_mode="Markdown")
 
-# Регистрируем хэндлеры
-dp.message.register(start, commands=["start"])
-dp.message.register(all_payments, commands=["all"])
+# Регистрируем хэндлеры через фильтры Command
+dp.message.register(start, Command(commands=["start"]))
+dp.message.register(all_payments, Command(commands=["all"]))
 
 # Запуск бота через asyncio
 async def main():
