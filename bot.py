@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
