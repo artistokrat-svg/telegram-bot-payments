@@ -1,0 +1,74 @@
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+import asyncio
+import sqlite3
+from datetime import datetime
+
+TOKEN = "8302257217:AAHDBM23pcjVaYeEB2BSSmFRMpKMsC8rBvQ"
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+conn = sqlite3.connect("payments.db")
+cursor = conn.cursor()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    username TEXT,
+    amount REAL,
+    description TEXT,
+    date TEXT,
+    photo_id TEXT
+)
+""")
+conn.commit()
+
+@dp.message(Command("start"))
+async def start(message: types.Message):
+    await message.answer("👋 Привет! Отправь сумму и описание, а потом фото чека 📸")
+
+@dp.message()
+async def handle_message(message: types.Message):
+    if message.photo:
+        cursor.execute("SELECT id FROM payments WHERE user_id = ? ORDER BY id DESC LIMIT 1", (message.from_user.id,))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("UPDATE payments SET photo_id = ? WHERE id = ?", (message.photo[-1].file_id, row[0]))
+            conn.commit()
+            await message.answer("✅ Фото чека сохранено!")
+        else:
+            await message.answer("⚠️ Сначала отправь сумму и описание, потом фото.")
+    else:
+        parts = message.text.strip().split(" ", 1)
+        if len(parts) < 1:
+            await message.answer("⚠️ Введи сумму и описание.")
+            return
+        try:
+            amount = float(parts[0])
+        except ValueError:
+            await message.answer("⚠️ Первая часть должна быть числом (сумма).")
+            return
+        description = parts[1] if len(parts) > 1 else ""
+        cursor.execute("""
+        INSERT INTO payments (user_id, username, amount, description, date)
+        VALUES (?, ?, ?, ?, ?)
+        """, (message.from_user.id, message.from_user.username, amount, description, datetime.now().isoformat()))
+        conn.commit()
+        await message.answer("✅ Платёж сохранён! Теперь можешь отправить фото чека 📸")
+
+@dp.message(Command("stats"))
+async def stats(message: types.Message):
+    cursor.execute("SELECT username, SUM(amount) FROM payments GROUP BY username")
+    rows = cursor.fetchall()
+    total = sum(row[1] for row in rows)
+    text = "📊 Статистика:\n\n"
+    for r in rows:
+        text += f"@{r[0]} — {r[1]:.2f} ₽\n"
+    text += f"\n💰 Всего: {total:.2f} ₽"
+    await message.answer(text)
+
+async def main():
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
