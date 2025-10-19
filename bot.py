@@ -1,23 +1,24 @@
 import os
 import sqlite3
 import asyncio
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 
-# Токен из переменной окружения
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Хэндлер команды /start
+# /start
 async def start(message: Message):
     await message.reply("Привет! Бот работает ✅")
 
-# Хэндлер команды /all
+# /all
 async def all_payments(message: Message):
-    conn = sqlite3.connect('payments.db')
+    conn = sqlite3.connect("payments.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT username, amount, description, date FROM payments ORDER BY date DESC LIMIT 20")
+    cursor.execute(
+        "SELECT username, amount, description, date FROM payments ORDER BY date DESC LIMIT 20"
+    )
     records = cursor.fetchall()
     conn.close()
 
@@ -36,7 +37,7 @@ async def all_payments(message: Message):
 dp.message.register(start, commands=["start"])
 dp.message.register(all_payments, commands=["all"])
 
-# Запуск бота через asyncio.run()
+# Запуск бота через asyncio
 async def main():
     await dp.start_polling(bot)
 
